@@ -22,7 +22,7 @@ class ChatMinion(Thread):
             respuesta = self.socket_cliente.recv(self.buff)
             comando, valor = parse_respuesta(respuesta)
         
-        scoket_cliente.send("Conexión terminada")
+        socket_cliente.send("Conexión terminada")
         socket_cliente.close
 
 
