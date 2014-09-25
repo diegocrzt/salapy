@@ -1,6 +1,32 @@
 # -*- coding: utf-8 -*-
 
 from threading import Thread
+import time
+
+
+class ChatSender(Thread):
+
+    def __init__(self, socket_cliente, hist, secuencia, usuario):
+        self.socket_cliente = socket_cliente
+        self.hist = hist
+        self.usuario = usuario
+        self.secuencia = secuencia
+        Thread.__init__(self)
+
+    def run(self):
+        try:
+            while True:
+                #print(".")
+                msg_array, self.secuencia = self.hist.obtener_historia(self.secuencia, self.usuario)
+                for mensaje in msg_array:
+                    self.socket_cliente.send(mensaje["nombre"] + ": " + mensaje["mensaje"]+"\n")
+                time.sleep(1)
+        except IOError:
+            print("Socket cerrado")
+        except BaseException as be:
+            print("Error General"+str(be))
+        finally:
+            return 0
 
 
 class ChatMinion(Thread):
@@ -19,7 +45,6 @@ class ChatMinion(Thread):
 
     def validar_nick(self, comando, nick):
         """
-
         :rtype : bool
         :param comando : Comando para establecer el nick
         :param nick: Nombre de usuario
@@ -38,11 +63,12 @@ class ChatMinion(Thread):
             self.usuario = nick
             print(nick + " Entró a la sala de chat")
             return True
-
+    '''
     def enviar_historia(self):
         msg_array, self.secuencia = self.hist.obtener_historia(self.secuencia, self.usuario)
         for mensaje in msg_array:
-            self.socket_cliente.send(mensaje["nombre"] + " : " + mensaje["mensaje"])
+            self.socket_cliente.send(mensaje["nombre"] + " : " + mensaje["mensaje"] + "\n")
+    '''
 
     def run(self):
         print 'Conexión recibida: ' + self.socket_info[0] + ' puerto: ' + \
@@ -55,7 +81,8 @@ class ChatMinion(Thread):
         if self.validar_nick(comando, valor):
             ret_mens = ""
             self.socket_cliente.send("Bienvenido a la sala de Chat {0}\n".format(self.usuario))
-            self.enviar_historia()
+            #self.enviar_historia()
+            ChatSender(self.socket_cliente, self.hist, self.secuencia, self.usuario).start()
             respuesta = self.socket_cliente.recv(self.buff)
             comando, valor = parse_respuesta(respuesta)
             while comando:
@@ -64,7 +91,7 @@ class ChatMinion(Thread):
                 self.secuencia = self.hist.escribir_historia(self.usuario, valor)
                 respuesta = self.socket_cliente.recv(self.buff)
                 comando, valor = parse_respuesta(respuesta)
-                self.enviar_historia()
+                #self.enviar_historia()
         else:
             if comando == "MENS":
                 ret_mens = "Debe validar el nombre de usuario primero "
@@ -75,7 +102,7 @@ class ChatMinion(Thread):
             self.nicks.remove(self.usuario)
             print(self.usuario + " se desconectó")
 
-        self.socket_cliente.send(ret_mens + " Conexión terminada")
+        self.socket_cliente.send(ret_mens + "Conexión terminada\n")
         self.socket_cliente.close()
 
 

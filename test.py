@@ -5,7 +5,6 @@
 
 from daemon import ChatDaemon
 
-
 daemon = ChatDaemon()
 
 daemon.inicializar()
