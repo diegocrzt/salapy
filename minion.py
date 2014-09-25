@@ -53,16 +53,16 @@ class ChatMinion(Thread):
         # FIXME: Validar y añadir nick a la lista compartida
         nick = nick.strip()
         if comando != "NICK":
-            return False
+            return False, "Comando no esperado"
 
         if nick in self.nicks:
             print(nick + " ya existe")
-            return False
+            return False, nick + " ya existe"
         else:
             self.nicks.add(nick)
             self.usuario = nick
             print(nick + " Entró a la sala de chat")
-            return True
+            return True, "OK"
     '''
     def enviar_historia(self):
         msg_array, self.secuencia = self.hist.obtener_historia(self.secuencia, self.usuario)
@@ -78,7 +78,8 @@ class ChatMinion(Thread):
         respuesta = self.socket_cliente.recv(self.buff)
         comando, valor = parse_respuesta(respuesta)
 
-        if self.validar_nick(comando, valor):
+        estado, ret_mens = self.validar_nick(comando, valor)
+        if estado:
             ret_mens = ""
             self.socket_cliente.send("Bienvenido a la sala de Chat {0}\n".format(self.usuario))
             #self.enviar_historia()
@@ -95,15 +96,19 @@ class ChatMinion(Thread):
         else:
             if comando == "MENS":
                 ret_mens = "Debe validar el nombre de usuario primero "
-            else:
-                ret_mens = "Comando no esperado "
+            #else:
+            #    ret_mens = "Comando no esperado "
 
         if self.usuario is not None:
             self.nicks.remove(self.usuario)
             print(self.usuario + " se desconectó")
-
-        self.socket_cliente.send(ret_mens + "Conexión terminada\n")
-        self.socket_cliente.close()
+        try:
+            self.socket_cliente.send(ret_mens + "Conexión terminada\n")
+            self.socket_cliente.close()
+        except IOError as io:
+            print("Usuario desconectado antes "+str(io))
+        finally:
+            print("Asumir usuario desconectado")
 
 
 def parse_respuesta(cadena):
